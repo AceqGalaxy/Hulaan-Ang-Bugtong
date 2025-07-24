@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hulaan ang Bugtong!</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            padding: 20px;
+            background: #ffeaa7;
+        }
+        #game, #scoreboard {
+            display: none;
+        }
+        .bugtong {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        input {
+            padding: 10px;
+            font-size: 18px;
+            width: 80%;
+            max-width: 300px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            margin-top: 15px;
+        }
+        #timer {
+            font-size: 24px;
+            color: red;
+            margin: 10px 0;
+        }
+        #feedback {
+            font-size: 28px;
+            font-weight: bold;
+            margin-top: 20px;
+            display: none;
+        }
+        .correct {
+            color: green;
+            animation: pop 0.5s ease;
+        }
+        .wrong {
+            color: red;
+            animation: shake 0.5s ease;
+        }
+        @keyframes pop {
+            0% { transform: scale(1); opacity: 0; }
+            50% { transform: scale(1.3); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+            100% { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Hulaan ang Bugtong!</h1>
+    <div id="start-screen">
+        <button onclick="startGame()">Play Now</button>
+    </div>
+
+    <div id="game">
+        <div id="stage-info">Stage 1 of 20</div>
+        <div id="timer">15</div>
+        <div class="bugtong" id="bugtong-text">BUGTONG</div>
+        <input type="text" id="user-input" placeholder="I-type ang sagot dito">
+        <br>
+        <button onclick="checkAnswer()">Submit</button>
+        <div id="feedback"></div>
+    </div>
+
+    <div id="scoreboard">
+        <h2>Tapos na ang Laro!</h2>
+        <p>Ang Iyong Score: <span id="final-score"></span> / 20</p>
+        <button onclick="restartGame()">Ulitin</button>
+    </div>
+
+    <!-- Sound Effects -->
+    <audio id="correct-sound" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
+    <audio id="wrong-sound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
+
+    <script>
+        let riddles = [
+            { clue: "Hindi tao, hindi hayop, nagdadamit ng salapi.", answer: "alkansya" },
+            { clue: "May bintana nguni’t hindi naman maaliwalas.", answer: "telebisyon" },
+            { clue: "Ako ay may kaibigan, kasangga sa pangangailangan, may dalawang pakpak, ngunit di makalipad.", answer: "gunting" },
+            { clue: "Hindi hari, hindi pari ang suot ay sari-sari.", answer: "sampayan" },
+            { clue: "Dalawang batong itim, malayo ang nararating.", answer: "mata" },
+            { clue: "Malaking supot ni Mang Jacob, kung sisidlan ay pataob.", answer: "kulambo" },
+            { clue: "Buto’t balat lumilipad.", answer: "saranggola" },
+            { clue: "Isang bayabas, pito ang butas.", answer: "ulo" },
+            { clue: "Kay lapit-lapit na sa mata, di mo pa rin makita.", answer: "tenga" },
+            { clue: "Buto’t balat lumilipad, may buntot na panghila.", answer: "saranggola" },
+            { clue: "Munting hayop na pangahas, aaligid-aligid sa ningas.", answer: "gamu-gamo" },
+            { clue: "Kapatid ng iyong ama o ina, tumutulong sa 'yo kung sila'y wala.", answer: "tiyuhin" },
+            { clue: "Isang butil ng palay, sakop ang buong buhay.", answer: "ilaw" },
+            { clue: "Lumuluha walang mata, lumalakad walang paa.", answer: "gripo" },
+            { clue: "Isang bahay na bato, ang bubong ay papel.", answer: "aklat" },
+            { clue: "Bahay ni San Pedro, punong-puno ng demonyo.", answer: "paminta" },
+            { clue: "Lumilindol nang walang galaw, tumutunog nang walang ingay.", answer: "kampana" },
+            { clue: "Bilog na parang bola, may buntot na panghila.", answer: "tsinelas" },
+            { clue: "Malaking supot na may lamang tubig, kung kainin ay pumipitik.", answer: "talaba" },
+            { clue: "Heto na si Kaka, bubuka-bukaka.", answer: "gunting" }
+        ];
+
+        let currentStage = 0;
+        let score = 0;
+        let timerInterval;
+        let timeLeft = 15;
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function startGame() {
+            currentStage = 0;
+            score = 0;
+            shuffleArray(riddles);
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('scoreboard').style.display = 'none';
+            document.getElementById('game').style.display = 'block';
+            loadStage();
+        }
+
+        function loadStage() {
+            if (currentStage < riddles.length) {
+                document.getElementById('stage-info').innerText = `Stage ${currentStage + 1} of ${riddles.length}`;
+                document.getElementById('bugtong-text').innerText = riddles[currentStage].clue;
+                document.getElementById('user-input').value = '';
+                document.getElementById('feedback').style.display = 'none';
+                startTimer();
+            } else {
+                endGame();
+            }
+        }
+
+        function checkAnswer() {
+            clearInterval(timerInterval);
+            const userAnswer = document.getElementById('user-input').value.trim().toLowerCase();
+            const feedback = document.getElementById('feedback');
+            if (userAnswer === riddles[currentStage].answer) {
+                score++;
+                document.getElementById('correct-sound').play();
+                feedback.innerText = "Tama!";
+                feedback.className = "correct";
+            } else {
+                document.getElementById('wrong-sound').play();
+                feedback.innerText = "Mali!";
+                feedback.className = "wrong";
+            }
+            feedback.style.display = 'block';
+            currentStage++;
+            setTimeout(loadStage, 1000);
+        }
+
+        function startTimer() {
+            timeLeft = 15;
+            document.getElementById('timer').innerText = timeLeft;
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').innerText = timeLeft;
+                if (timeLeft === 0) {
+                    clearInterval(timerInterval);
+                    const feedback = document.getElementById('feedback');
+                    document.getElementById('wrong-sound').play();
+                    feedback.innerText = "Time's Up!";
+                    feedback.className = "wrong";
+                    feedback.style.display = 'block';
+                    currentStage++;
+                    setTimeout(loadStage, 1000);
+                }
+            }, 1000);
+        }
+
+        function endGame() {
+            document.getElementById('game').style.display = 'none';
+            document.getElementById('scoreboard').style.display = 'block';
+            document.getElementById('final-score').innerText = score;
+        }
+
+        function restartGame() {
+            startGame();
+        }
+    </script>
+</body>
+</html>
